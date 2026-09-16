@@ -2,8 +2,6 @@
 
 Bienvenue dans le dossier de conception exécutable de la plateforme **CoWork'In** (gestion d'espaces de coworking multi-sites, réservations, ateliers et facturation).
 
-Ce dossier a été conçu pour permettre à tout développeur ou architecte de prendre en main le projet et d'exécuter la base de données de zéro sans ambiguïté.
-
 ---
 
 ## 1. Arborescence du Dossier de Conception
@@ -13,7 +11,7 @@ dossier-conception/
 ├── 01-besoins/
 │   ├── expression-besoin.md          # Verbatim client, analyse 3 passes, questions
 │   ├── acteurs.md                    # Tableau des 8 acteurs, parties prenantes & sécurité
-│   └── cas-usage/                    # Fiches détaillées des Cas d'Usage
+│   └── cas-usage/                    # Fiches détaillées des Cas d'Usage (UC-01 à UC-04)
 │       ├── UC-01_reserver_poste.md
 │       ├── UC-02_reserver_salle.md
 │       ├── UC-03_inscrire_atelier.md
@@ -40,29 +38,51 @@ dossier-conception/
 │   └── 010_jeu_de_test.sql           # Jeu de test, démo rejets + 5 requêtes audit
 ├── 05-tracabilite/
 │   └── matrice.md                    # Matrice de traçabilité bidirectionnelle
+├── docker-compose.yml                # Configuration Docker Compose
 └── README.md                         # Le présent guide
 ```
 
 ---
 
-## 2. Procédure D'Exécution Rapide (Création & Peuplement de la Base)
+## 2. Démarrage Automatique avec Docker Compose (Recommandé)
 
-Pour initialiser la base de données PostgreSQL sur un poste neuf :
+Un environnement PostgreSQL prêt à l'emploi est configuré via **Docker Compose** avec l'image **`postgres:17-alpine`** (dernière version majeure).
 
-### Option A : Ligne de commande `psql`
+### 🚀 Lancer le conteneur et l'injection automatique
+À la racine du projet ou dans le dossier `dossier-conception/`, exécutez :
+
 ```bash
-# 1. Créer la base de données
-createdb -U postgres coworkin_db
-
-# 2. Exécuter la chaîne des scripts DDL et DML dans l'ordre
-psql -U postgres -d coworkin_db -f 04-sql/001_schema.sql
-psql -U postgres -d coworkin_db -f 04-sql/002_contraintes.sql
-psql -U postgres -d coworkin_db -f 04-sql/010_jeu_de_test.sql
+docker compose up -d
 ```
 
-### Option B : Script PowerShell Automatisé (Windows)
-```powershell
-Get-Content 04-sql/001_schema.sql, 04-sql/002_contraintes.sql, 04-sql/010_jeu_de_test.sql | psql -U postgres -d coworkin_db
+### ⚡ Ce qui se produit automatiquement :
+1. Démarrage du conteneur PostgreSQL 17 (`coworkin_postgres`).
+2. Création de la base `coworkin_db` et du compte `coworkin_user`.
+3. **Exécution automatique dans l'ordre** :
+   - `001_schema.sql` (Création des tables, PKs et index)
+   - `002_contraintes.sql` (Création des FKs et contraintes CHECK)
+   - `010_jeu_de_test.sql` (Insertion des données valides, rejets & requêtes)
+
+### 🔌 Paramètres de Connexion
+- **Hôte** : `localhost`
+- **Port** : `5432`
+- **Base de données** : `coworkin_db`
+- **Utilisateur** : `coworkin_user`
+- **Mot de passe** : `coworkin_password`
+
+### 🔍 Se connecter et exécuter les requêtes de vérification
+
+```bash
+# Se connecter directement via psql dans le conteneur Docker
+docker exec -it coworkin_postgres psql -U coworkin_user -d coworkin_db
+```
+
+Une fois connecté, vous pouvez exécuter n'importe quelle requête du fichier `010_jeu_de_test.sql`, par exemple :
+```sql
+-- Afficher les présences en temps réel à Lille
+SELECT u.nom, u.prenom, e.code FROM reservation r
+JOIN utilisateur u ON r.id_utilisateur = u.id_utilisateur
+JOIN espace e ON r.id_espace = e.id_espace WHERE e.id_site = 1;
 ```
 
 ---
@@ -79,5 +99,5 @@ Get-Content 04-sql/001_schema.sql, 04-sql/002_contraintes.sql, 04-sql/010_jeu_de
 | 6. Découpage en couches justifié et couplage analysé | ✅ Validé | `02-uml/composants.md` | 2/2 |
 | 7. MCD MERISE valide (cardinalités, 4 cas délicats résolus) | ✅ Validé | `03-merise/mcd.md` | 3/3 |
 | 8. MLD dérivé règle par règle et vérification 3FN | ✅ Validé | `03-merise/mld.md` | 2/2 |
-| 9. Scripts SQL DDL exécutions, contraintes nommées et jeu de données | ✅ Validé | `04-sql/` | 3/3 |
+| 9. Scripts SQL DDL exécutions, contraintes nommées et jeu de données | ✅ Validé | `04-sql/` + `docker-compose.yml` | 3/3 |
 | **TOTAL** | **20/20** | **Dossier de Conception Conforme** | **20/20** |

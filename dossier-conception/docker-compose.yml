@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: coworkin_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: coworkin_db
+      POSTGRES_USER: coworkin_user
+      POSTGRES_PASSWORD: coworkin_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./04-sql/001_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./04-sql/002_contraintes.sql:/docker-entrypoint-initdb.d/02_contraintes.sql:ro
+      - ./04-sql/010_jeu_de_test.sql:/docker-entrypoint-initdb.d/03_jeu_de_test.sql:ro
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coworkin_user -d coworkin_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
