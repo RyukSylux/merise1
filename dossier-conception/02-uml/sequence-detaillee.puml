@@ -1,0 +1,74 @@
+@startuml
+autonumber
+skinparam shadowing false
+
+actor "Coworker" as C
+participant "ReservationController" as Ctrl
+participant "ReservationService" as Service
+participant "QuotaService" as Quota
+participant "PaymentService" as Payment
+participant "ReservationRepository" as Repo
+database "Base de Données" as DB
+participant "NotificationService" as Notif
+
+C -> Ctrl : DELETE /api/v1/reservations/{id}
+activate Ctrl
+
+Ctrl -> Service : cancelReservation(reservationId, userId)
+activate Service
+
+Service -> Repo : findById(reservationId)
+activate Repo
+Repo -> DB : SELECT * FROM reservation WHERE id_reservation = ?
+activate DB
+DB --> Repo : reservationData
+deactivate DB
+Repo --> Service : reservationObj
+deactivate Repo
+
+Service -> Service : checkOwnershipAndStatus(reservationObj, userId)
+Service -> Service : calculateHoursBeforeStart(reservationObj.dateHeureDebut)
+
+alt delayHours > 24
+    Service -> Service : refundPercentage = 1.00
+else delayHours <= 24
+    Service -> Service : refundPercentage = 0.50
+end
+
+alt reservationObj.wasQuotaUsed == true
+    Service -> Quota : restoreQuota(userId, reservationObj.dureeHeures * refundPercentage)
+    activate Quota
+    Quota -> DB : UPDATE abonnement SET quota_restant = quota_restant + ?
+    activate DB
+    DB --> Quota : OK
+    deactivate DB
+    Quota --> Service : quotaRestored
+    deactivate Quota
+else
+    Service -> Payment : refundPayment(reservationObj.transactionId, reservationObj.montantTotal * refundPercentage)
+    activate Payment
+    Payment --> Service : refundSuccess
+    deactivate Payment
+end
+
+Service -> Repo : updateStatus(reservationId, "ANNULEE")
+activate Repo
+Repo -> DB : UPDATE reservation SET statut = 'ANNULEE' WHERE id_reservation = ?
+activate DB
+DB --> Repo : OK
+deactivate DB
+Repo --> Service : reservationUpdated
+deactivate Repo
+
+Service -> Notif : sendCancellationEmail(userId, reservationObj)
+activate Notif
+Notif --> Service : emailQueued
+deactivate Notif
+
+Service --> Ctrl : cancellationResultDTO
+deactivate Service
+
+Ctrl --> C : 200 OK { status: "ANNULEE", refundPercentage: 1.00 }
+deactivate Ctrl
+
+@enduml

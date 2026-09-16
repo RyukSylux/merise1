@@ -1,0 +1,125 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam monochrome false
+
+class Site {
+  - id_site : Long
+  - nom : String
+  - ville : String
+  - adresse : String
+  - capacite_max : Integer
+}
+
+abstract class Espace {
+  - id_espace : Long
+  - code : String
+  - etage : Integer
+}
+
+class Poste {
+  - est_electrique : Boolean
+  - a_ecran_externe : Boolean
+}
+
+class SalleReunion {
+  - nom_salle : String
+  - capacite_personnes : Integer
+  - equipements : String
+  - est_maintenance : Boolean
+}
+
+class Utilisateur {
+  - id_utilisateur : Long
+  - nom : String
+  - prenom : String
+  - email : String
+  - telephone : String
+  - role : String
+  - date_creation : DateTime
+}
+
+class Societe {
+  - id_societe : Long
+  - raison_sociale : String
+  - siret : String
+  - adresse_facturation : String
+}
+
+class Formule {
+  - id_formule : Long
+  - libelle : String
+  - tarif_mensuel : Decimal
+  - quota_salle_heures : Integer
+}
+
+class Abonnement {
+  - id_abonnement : Long
+  - date_debut : Date
+  - date_fin : Date
+  - statut : String
+}
+
+class Reservation {
+  - id_reservation : Long
+  - date_heure_debut : DateTime
+  - date_heure_fin : DateTime
+  - statut : String
+  - montant_total : Decimal
+}
+
+class Atelier {
+  - id_atelier : Long
+  - titre : String
+  - description : String
+  - date_heure : DateTime
+  - places_max : Integer
+  - nb_inscrits : Integer
+  - tarif : Decimal
+}
+
+class Inscription {
+  - date_inscription : DateTime
+  - statut_inscription : String
+}
+
+class Facture {
+  - id_facture : Long
+  - reference : String
+  - date_emission : Date
+  - montant_ht : Decimal
+  - montant_tva : Decimal
+  - montant_ttc : Decimal
+  - statut_paiement : String
+}
+
+class LigneFacture {
+  - id_ligne : Long
+  - description : String
+  - quantite : Decimal
+  - prix_unitaire_ht : Decimal
+  - montant_ht : Decimal
+}
+
+Espace <|-- Poste
+Espace <|-- SalleReunion
+
+Site "1" -- "1..*" Espace : contient >
+Site "1" -- "0..*" Atelier : heberge >
+
+Utilisateur "0..*" -- "0..1" Societe : appartient >
+Utilisateur "1" -- "0..*" Abonnement : souscrit >
+Formule "1" -- "0..*" Abonnement : definit >
+
+Utilisateur "1" -- "0..*" Reservation : effectue >
+Espace "1" -- "0..*" Reservation : concerne >
+
+(Utilisateur, Atelier) .. Inscription
+
+Utilisateur "0..1" -- "0..*" Facture : adresse_a >
+Societe "0..1" -- "0..*" Facture : adresse_societe >
+
+Facture "1" *-- "1..*" LigneFacture : compose_de >
+Reservation "0..1" -- "0..1" LigneFacture : genere >
+
+@enduml

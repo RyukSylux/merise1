@@ -1,0 +1,52 @@
+@startuml
+autonumber
+actor "Coworker" as C
+participant "Système CoWork'In" as S
+participant "PSP (Paiement)" as PSP
+participant "Service E-mail" as E
+
+title Diagramme de Séquence Système — UC-04 : Annuler une réservation
+
+C -> S : demanderListeReservationsAvenir()
+activate S
+S --> C : afficherReservations(listeReservations)
+deactivate S
+
+C -> S : annulerReservation(idReservation)
+activate S
+S -> S : verifierDelaiAnnulation(dateDebut, now)
+
+alt Delai > 24 heures (Cas Nominal)
+    S -> S : restituerQuotaOuPaiement(100%)
+    alt Payé par Carte Bancaire
+        S -> PSP : ordonnerRemboursement(idTransaction, montantTotal)
+        activate PSP
+        PSP --> S : confirmationRemboursement(statusOK)
+        deactivate PSP
+    end
+    S -> S : mettreAJourStatutReservation("ANNULEE")
+    S -> S : libererCreneauEspace()
+    S -> E : envoyerNotificationAnnulation(coworkerEmail, detail)
+    S --> C : afficherConfirmation("Réservation annulée. Remboursement/Quota intégral émis.")
+
+else Delai <= 24 heures (Cas Tardif - RG-09)
+    S --> C : demanderConfirmationPenalite(penalite = 50%)
+    deactivate S
+    
+    C -> S : confirmerAnnulationAvecPenalite(idReservation)
+    activate S
+    S -> S : restituerQuotaOuPaiement(50%)
+    alt Payé par Carte Bancaire
+        S -> PSP : ordonnerRemboursement(idTransaction, montant50Percent)
+        activate PSP
+        PSP --> S : confirmationRemboursement(statusOK)
+        deactivate PSP
+    end
+    S -> S : mettreAJourStatutReservation("ANNULEE_PENALITE")
+    S -> S : libererCreneauEspace()
+    S -> E : envoyerNotificationAnnulation(coworkerEmail, detailPenalite)
+    S --> C : afficherConfirmation("Réservation annulée avec 50% de pénalité.")
+end
+deactivate S
+
+@enduml

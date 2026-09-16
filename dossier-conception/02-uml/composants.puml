@@ -1,0 +1,50 @@
+@startuml
+skinparam componentStyle uml2
+skinparam shadowing false
+
+package "Couche Présentation" {
+  [Web App / Single Page Application] as UI
+  [REST API Controllers] as API
+}
+
+package "Couche Métier / Domaine" {
+  [Service Réservation] as SvcResa
+  [Moteur de Gestion des Quotas] as SvcQuota
+  [Moteur de Facturation] as SvcFacture
+  [Service Événements / Ateliers] as SvcAtelier
+  [Service de Sécurité & Droits] as SvcSecu
+}
+
+package "Couche Accès aux Données" {
+  [Repositories / DAO] as DAO
+}
+
+database "PostgreSQL DB" {
+  [Base Relationnelle CoWork'In] as DB
+}
+
+package "Services Externes / Infrastructure" {
+  [PSP Payment Gateway (Stripe API)] as PSP
+  [Service E-mail Transactionnel] as Mailer
+}
+
+UI --> API : HTTPS / JSON
+
+API --> SvcSecu : Vérification Token / Rôles
+API --> SvcResa : Actions réservations
+API --> SvcAtelier : Inscriptions ateliers
+API --> SvcFacture : Consultation factures
+
+SvcResa --> SvcQuota : Contrôle & Déduction Quota 4h
+SvcResa --> DAO : Persistence
+SvcResa --> PSP : Paiement immédiat / Acompte
+
+SvcFacture --> DAO : Requêtes de synthèse mensuelle
+SvcFacture --> Mailer : Envoi des factures PDF
+
+SvcAtelier --> DAO : Contrôle jauge atelier
+SvcAtelier --> Mailer : Envoi confirmations
+
+DAO --> DB : SQL / Connection Pool (HikariCP)
+
+@enduml
