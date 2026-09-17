@@ -8,7 +8,9 @@
     "build": "tsc",
     "dev": "tsx watch src/main/index.ts",
     "start": "node dist/main/index.js",
-    "test": "vitest run"
+    "test": "vitest run tests/unit",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
